@@ -62,7 +62,7 @@ void initializeEmployees(struct sEmployee *employees, int size)
 {
     for(int i=0; i<size; i++)
     {
-        (employees+i)->ID=-1; // -1 indicates an empty slot
+        (employees+i)->ID=-1;
     }
 }
 
@@ -92,7 +92,7 @@ void displayAllEmployees(const struct sEmployee *employees, int size)
             No_Users=0;
         }
     }
-    if(No_Users==1) // If No_Users remains 1, no employees were found
+    if(No_Users==1)
         printf("No Employees data exist in system, please add Employees by choosing New\n");
 }
 
@@ -131,7 +131,6 @@ int findEmployeeIndexByName(const struct sEmployee *employees, int size, const c
     return -1;
 }
 
-
 void displayEmployeeByName(const struct sEmployee *employees, int size)
 {
     system("cls");
@@ -157,13 +156,128 @@ void displayEmployeeByName(const struct sEmployee *employees, int size)
 }
 
 
+int isIDUnique(const struct sEmployee *employees, int size, int id, int currentIndex)
+{
+    for(int i=0; i<size; i++)
+    {
+        if(i == currentIndex)
+            continue;
+        if(id == (employees+i)->ID && (employees+i)->ID != -1)
+        {
+            return 0; // Not unique
+        }
+    }
+    return 1; // Unique
+}
+
+void handleNewEmployee(struct sEmployee *employees, int size)
+{
+    int Index; // 1-based index for user input
+    int employeeArrayIndex = -1; // 0-based index for array access
+
+    do
+    {
+        system("cls");
+        if(size==1)
+            Index=1;
+        else
+        {
+            printf("Enter the index of the employee (from 1 to %d) : ", size);
+            scanf("%d", &Index);
+        }
+
+        if(Index < 1 || Index > size)
+        {
+            printf("Invalid index. Please enter a value between 1 and %d.\n", size);
+            getch();
+            Index = -1;
+        }
+        else
+        {
+            employeeArrayIndex = Index - 1;
+            if(employees[employeeArrayIndex].ID != -1)
+            {
+                printf("Index is occupied by another employee. Please choose an empty slot.\n");
+                getch();
+                Index = -1;
+            }
+        }
+    }while(Index == -1);
+
+    printf("\nPlease enter Employee %d data:\n", Index);
+
+    int newID;
+    do
+    {
+        printf("ID = ");
+        scanf("%d", &newID);
+        if(!isIDUnique(employees, size, newID, employeeArrayIndex))
+        {
+            printf("ID is Taken, Enter another Id\n\n");
+        }
+    }while(!isIDUnique(employees, size, newID, employeeArrayIndex));
+
+    employees[employeeArrayIndex].ID = newID;
+
+    printf("First Name = ");
+    _flushall();
+    gets(employees[employeeArrayIndex].Name);
+
+    printf("Salary = ");
+    scanf("%f", &employees[employeeArrayIndex].Salary);
+
+    printf("\n\n\nEmployee with ID = %d has been added successfully", employees[employeeArrayIndex].ID);
+    printf(", press any key to return to the main menu");
+    getch();
+}
+
+int handleMainMenuSelection(int *option, char Menu[5][10])
+{
+    char Input = _getch();
+    switch (Input)
+    {
+    case -32: // Arrow key or special key
+        Input = _getch();
+        switch (Input)
+        {
+        case 72://up
+            (*option)--;
+            if((*option)<0)
+                (*option)=4;
+            break;
+        case 80://down
+            (*option)++;
+            if((*option)>4)
+                (*option)=0;
+            break;
+        case 71://home
+            (*option)=0;
+            break;
+        case 79://end
+            (*option)=4;
+            break;
+        case 77://right
+            if (*option == 2) { // If "Display" is selected, right arrow opens submenu
+                return 2;
+            }
+            break;
+        }
+        break;
+    case 13://enter
+        return 1;
+    case 27: // Escape key
+        return -1;
+    }
+    return 0; // Normal menu navigation (up/down/home/end)
+}
+
+
 int main()
 {
     char Menu[5][10]={"New", "Edit", "Display", "Delete", "Exit"};
     int Option=0;
     int Flag=0;
     char Input;
-
 
     char NewSubMenu[3][10]={"Account", "Image", "Profile"};
     char DisplaySubMenu[3][20]={"Display All", "Display by ID", "Display by Name"};
@@ -185,242 +299,162 @@ int main()
         {
             MainMenu(Option, Menu);
 
-        Input=_getch();
-        switch (Input)
-        {
-        case -32:
-            Input=_getch();
-            switch (Input)
-            {
-            case 72://up
-                Option--;
-                if(Option<0)
-                    Option=4;
-                break;
-            case 80://down
-                Option++;
-                if(Option>4)
-                    Option=0;
-                break;
-            case 71://home
-                Option=0;
-                break;
-            case 79://end
-                Option=4;
-                break;
-            case 77://right
+            int menuAction = handleMainMenuSelection(&Option, Menu);
+
+            if (menuAction == -1) { // ESC key
+                Flag = 1;
+            } else if (menuAction == 2) { // Right arrow on Display
+                // Enter Display submenu logic
                 if (Option==2)
-            {
-                do
-                {
-                    SubFlag=0;
-
-                    SubMenu(SubOption, Option, DisplaySubMenu);
-
-                    SubInput=_getch();
-                    switch (SubInput)
-                    {
-                    case -32:
-                        SubInput=_getch();
-                        switch (SubInput)
-                        {
-                        case 72://up
-                            SubOption--;
-                            if(SubOption<0)
-                                SubOption=2;
-                            break;
-                        case 80://down
-                            SubOption++;
-                            if(SubOption>2)
-                            SubOption=0;
-                            break;
-                        case 71://home
-                            SubOption=0;
-                            break;
-                        case 79://end
-                            SubOption=2;
-                            break;
-                        case 75://left
-                            system("cls");
-                            SubOption=0;
-                            SubFlag=1;
-                            break;
-                        }
-                        break;
-                    case 13://enter
-                        {
-                            system("cls");
-
-                            if(SubOption==0)//display all
-                            {
-                                displayAllEmployees(ptr, Size);
-                            }
-                            else if(SubOption==1)//display by ID
-                            {
-                                displayEmployeeByID(ptr, Size);
-                            }
-                            else//display by name
-                            {
-                                displayEmployeeByName(ptr, Size);
-                            }
-
-                            printf("\n\n\n\nPress any key to return to the main menu");
-
-                            Option=0;
-                            SubOption=0;
-                            SubFlag=1;
-
-                            _getch();
-                        break;
-                        }
-                    case 27:
-                        SubFlag=1;
-                        SubOption=0;
-                        break;
-                    }
-
-                }while(SubFlag==0);
-            }
-            break;
-
-            }
-            break;
-
-        case 13://enter
-                if (Option==2)//Display Option
-            {
-                    do
-                {
-                    SubFlag=0;
-
-                    SubMenu(SubOption, Option, DisplaySubMenu);
-
-                    SubInput=_getch();
-                    switch (SubInput)
-                    {
-                    case -32:
-                        SubInput=_getch();
-                        switch (SubInput)
-                        {
-                        case 72://up
-                            SubOption--;
-                            if(SubOption<0)
-                                SubOption=2;
-                            break;
-                        case 80://down
-                            SubOption++;
-                            if(SubOption>2)
-                            SubOption=0;
-                            break;
-                        case 71://home
-                            SubOption=0;
-                            break;
-                        case 79://end
-                            SubOption=2;
-                            break;
-                        case 75://left
-                            system("cls");
-                            SubOption=0;
-                            SubFlag=1;
-                            break;
-                        }
-                        break;
-                    case 13://enter
-                        {
-                            system("cls");
-
-                            if(SubOption==0)//display all
-                            {
-                                displayAllEmployees(ptr, Size);
-                            }
-                            else if(SubOption==1)//display by ID
-                            {
-                                displayEmployeeByID(ptr, Size);
-                            }
-                            else//display by name
-                            {
-                                displayEmployeeByName(ptr, Size);
-                            }
-
-                            printf("\n\n\n\nPress any key to return to the main menu");
-
-                            Option=0;
-                            SubOption=0;
-                            SubFlag=1;
-
-                            _getch();
-                        break;
-                        }
-                    case 27:
-                        SubFlag=1;
-                        SubOption=0;
-                        break;
-                    }
-
-                }while(SubFlag==0);
-            }
-
-            else if(Option==0)//New Option
-            {
-                do
                 {
                     do
                     {
-                        system("cls");
-                        int Index;
-                        if(Size==1)
-                            Index=0;
-                        else
+                        SubFlag=0;
+                        SubMenu(SubOption, Option, DisplaySubMenu);
+                        SubInput=_getch();
+                        switch (SubInput)
                         {
-                            printf("Enter the index of the employee (from 1 to %d) : ", Size);
-                            scanf("%d", &Index);
-                        }
-                    }while(Index<1 || Index>Size);
+                        case -32:
+                            SubInput=_getch();
+                            switch (SubInput)
+                            {
+                            case 72://up
+                                SubOption--;
+                                if(SubOption<0)
+                                    SubOption=2;
+                                break;
+                            case 80://down
+                                SubOption++;
+                                if(SubOption>2)
+                                SubOption=0;
+                                break;
+                            case 71://home
+                                SubOption=0;
+                                break;
+                            case 79://end
+                                SubOption=2;
+                                break;
+                            case 75://left
+                                system("cls");
+                                SubOption=0;
+                                SubFlag=1;
+                                break;
+                            }
+                            break;
+                        case 13://enter
+                            {
+                                system("cls");
 
-                        if(ptr[Index-1].ID!=-1)
-                        {
-                            Index=-1;
-                            printf("Index is occupied by another employee");
-                            getch();
-                        }
-                }while(Index==-1);
-
-
-                printf("\nPlease enter Employee %d data:\n", Index);
-                int ID_Used=0;
-                do
-                {
-                    printf("ID = ");
-                    scanf("%d", &ptr[Index-1].ID);
-                        ID_Used=0;
-                        for(int i=0; i<Size; i++)
-                        {
-                            if(i==Index-1)
-                                continue;
-                            if(ptr[Index-1].ID==ptr[i].ID && ptr[i].ID!=-1)
+                                if(SubOption==0)
                                 {
-                                    printf("ID is Taken, Enter another Id\n\n");
-                                    ID_Used=1;
-                                    break;
+                                    displayAllEmployees(ptr, Size);
                                 }
+                                else if(SubOption==1)
+                                {
+                                    displayEmployeeByID(ptr, Size);
+                                }
+                                else
+                                {
+                                    displayEmployeeByName(ptr, Size);
+                                }
+
+                                printf("\n\n\n\nPress any key to return to the main menu");
+
+                                Option=0;
+                                SubOption=0;
+                                SubFlag=1;
+
+                                _getch();
+                            break;
+                            }
+                        case 27:
+                            SubFlag=1;
+                            SubOption=0;
+                            break;
                         }
-                }while(ID_Used==1);
 
+                    }while(SubFlag==0);
+                }
+            } else if (menuAction == 1) { // Enter key
+                if (Option==2)//Display Option
+                {
+                    do
+                    {
+                        SubFlag=0;
 
-                printf("First Name = ");
-                _flushall();
-                gets(ptr[Index-1].Name);
+                        SubMenu(SubOption, Option, DisplaySubMenu);
 
-                printf("Salary = ");
-                scanf("%f", &ptr[Index-1].Salary);
+                        SubInput=_getch();
+                        switch (SubInput)
+                        {
+                        case -32:
+                            SubInput=_getch();
+                            switch (SubInput)
+                            {
+                            case 72://up
+                                SubOption--;
+                                if(SubOption<0)
+                                    SubOption=2;
+                                break;
+                            case 80://down
+                                SubOption++;
+                                if(SubOption>2)
+                                SubOption=0;
+                                break;
+                            case 71://home
+                                SubOption=0;
+                                break;
+                            case 79://end
+                                SubOption=2;
+                                break;
+                            case 75://left
+                                system("cls");
+                                SubOption=0;
+                                SubFlag=1;
+                                break;
+                            }
+                            break;
+                        case 13://enter
+                            {
+                                system("cls");
 
-                printf("\n\n\nEmployee with ID = %d has been added successfully", ptr[Index-1].ID);
-                printf(", press any key to return to the main menu");
-                getch();
+                                if(SubOption==0)
+                                {
+                                    displayAllEmployees(ptr, Size);
+                                }
+                                else if(SubOption==1)
+                                {
+                                    displayEmployeeByID(ptr, Size);
+                                }
+                                else
+                                {
+                                    displayEmployeeByName(ptr, Size);
+                                }
 
-            }
-            else if(Option==1)//Edit
-            {
+                                printf("\n\n\n\nPress any key to return to the main menu");
+
+                                Option=0;
+                                SubOption=0;
+                                SubFlag=1;
+
+                                _getch();
+                            break;
+                            }
+                        case 27:
+                            SubFlag=1;
+                            SubOption=0;
+                            break;
+                        }
+
+                    }while(SubFlag==0);
+                }
+
+                else if(Option==0)//New Option
+                {
+                    handleNewEmployee(ptr, Size);
+                }
+                else if(Option==1)//Edit
+                {
                     system("cls");
                     int Edit_ID=0;
 
@@ -452,48 +486,44 @@ int main()
                     }
 
                     Option=0;
-            }
-            else if(Option==3)//delete
-            {
-                        system("cls");
-                        int Delete_ID=0;
+                }
+                else if(Option==3)//delete
+                {
+                    system("cls");
+                    int Delete_ID=0;
 
-                        printf("Please enter the employee ID : ");
-                        scanf("%d", &Delete_ID);
+                    printf("Please enter the employee ID : ");
+                    scanf("%d", &Delete_ID);
 
-                        int IndexToDelete = findEmployeeIndexByID(ptr, Size, Delete_ID);
+                    int IndexToDelete = findEmployeeIndexByID(ptr, Size, Delete_ID);
 
-                        if (IndexToDelete!=-1)
-                        {
-                            ptr[IndexToDelete].ID=-1;
+                    if (IndexToDelete!=-1)
+                    {
+                        ptr[IndexToDelete].ID=-1;
 
-                            printf("\n\n\nEmployee with ID = %d has been deleted successfully", Delete_ID);
-                            printf(", press any key to return to the main menu");
-                            getch();
+                        printf("\n\n\nEmployee with ID = %d has been deleted successfully", Delete_ID);
+                        printf(", press any key to return to the main menu");
+                        getch();
 
-                        }
-                        else
-                        {
-                            printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Delete_ID);
-                            getch();
-                        }
+                    }
+                    else
+                    {
+                        printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Delete_ID);
+                        getch();
+                    }
 
-                        Option=0;
+                    Option=0;
 
-            }
-            else//Exit Option
+                }
+                else//Exit Option
                 {
                     Flag=1;
                 }
-            break;
-        case 27:
-            Flag=1;
-            break;
-        }
+            }
 
         }while(Flag==0);
 
-        free(ptr);
+    free(ptr);
     }
     else
     {
