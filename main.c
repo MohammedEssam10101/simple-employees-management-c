@@ -36,18 +36,8 @@ void MainMenu(int Option, char Menu[5][10])
     }
 }
 
-void SubMenu(int SubOption, int Option, char DisplaySubMenu[3][20])
-{
-    for(int j=0; j<3; j++)
-                {
-                    gotoxy(25, 12+j);
-                    if(SubOption==j)
-                        textattr(0x04);
+void SubMenu(int SubOption, int Option, char DisplaySubMenu[3][20]);
 
-                    _cprintf("%s", DisplaySubMenu[j]);
-                    textattr(0x07);
-                }
-}
 
 
 int getEmployeeCount()
@@ -155,7 +145,6 @@ void displayEmployeeByName(const struct sEmployee *employees, int size)
     }
 }
 
-
 int isIDUnique(const struct sEmployee *employees, int size, int id, int currentIndex)
 {
     for(int i=0; i<size; i++)
@@ -164,16 +153,16 @@ int isIDUnique(const struct sEmployee *employees, int size, int id, int currentI
             continue;
         if(id == (employees+i)->ID && (employees+i)->ID != -1)
         {
-            return 0; // Not unique
+            return 0;
         }
     }
-    return 1; // Unique
+    return 1;
 }
 
 void handleNewEmployee(struct sEmployee *employees, int size)
 {
-    int Index; // 1-based index for user input
-    int employeeArrayIndex = -1; // 0-based index for array access
+    int Index;
+    int employeeArrayIndex = -1;
 
     do
     {
@@ -236,7 +225,7 @@ int handleMainMenuSelection(int *option, char Menu[5][10])
     char Input = _getch();
     switch (Input)
     {
-    case -32: // Arrow key or special key
+    case -32:
         Input = _getch();
         switch (Input)
         {
@@ -257,7 +246,7 @@ int handleMainMenuSelection(int *option, char Menu[5][10])
             (*option)=4;
             break;
         case 77://right
-            if (*option == 2) { // If "Display" is selected, right arrow opens submenu
+            if (*option == 2) {
                 return 2;
             }
             break;
@@ -265,10 +254,144 @@ int handleMainMenuSelection(int *option, char Menu[5][10])
         break;
     case 13://enter
         return 1;
-    case 27: // Escape key
+    case 27:
         return -1;
     }
-    return 0; // Normal menu navigation (up/down/home/end)
+    return 0;
+}
+
+
+void handleEditEmployee(struct sEmployee *employees, int size)
+{
+    system("cls");
+    int Edit_ID=0;
+
+    printf("Please enter the employee ID : ");
+    scanf("%d", &Edit_ID);
+
+    int IndexToEdit = findEmployeeIndexByID(employees, size, Edit_ID);
+
+    if (IndexToEdit!=-1)
+    {
+        printf("\nPlease enter the Employee's data:\n");
+
+        printf("First Name = ");
+        _flushall();
+        gets(employees[IndexToEdit].Name);
+
+        printf("Salary = ");
+        scanf("%f", &employees[IndexToEdit].Salary);
+
+        printf("\n\n\nEmployee's data with ID = %d has been edited successfully", Edit_ID);
+        printf(", press any key to return to the main menu");
+        getch();
+    }
+    else
+    {
+        printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Edit_ID);
+        getch();
+    }
+}
+
+void handleDeleteEmployee(struct sEmployee *employees, int size)
+{
+    system("cls");
+    int Delete_ID=0;
+
+    printf("Please enter the employee ID : ");
+    scanf("%d", &Delete_ID);
+
+    int IndexToDelete = findEmployeeIndexByID(employees, size, Delete_ID);
+
+    if (IndexToDelete!=-1)
+    {
+        employees[IndexToDelete].ID=-1;
+
+        printf("\n\n\nEmployee with ID = %d has been deleted successfully", Delete_ID);
+        printf(", press any key to return to the main menu");
+        getch();
+    }
+    else
+    {
+        printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Delete_ID);
+        getch();
+    }
+}
+
+void handleDisplayMenu(struct sEmployee *employees, int size, char DisplaySubMenu[3][20], int *option_main_menu)
+{
+    int SubOption=0;
+    int SubFlag=0;
+    char SubInput;
+
+    do
+    {
+        SubFlag=0;
+        SubMenu(SubOption, 2, DisplaySubMenu); // Option 2 for Display menu item
+
+        SubInput=_getch();
+        switch (SubInput)
+        {
+        case -32: // Arrow key or special key in submenu
+            SubInput=_getch();
+            switch (SubInput)
+            {
+            case 72://up
+                SubOption--;
+                if(SubOption<0)
+                    SubOption=2;
+                break;
+            case 80://down
+                SubOption++;
+                if(SubOption>2)
+                SubOption=0;
+                break;
+            case 71://home
+                SubOption=0;
+                break;
+            case 79://end
+                SubOption=2;
+                break;
+            case 75://left
+                system("cls"); // Clear screen when returning to main menu
+                SubOption=0; // Reset sub-option
+                SubFlag=1; // Exit submenu loop
+                break;
+            }
+            break;
+        case 13://enter (in submenu)
+            {
+                system("cls");
+
+                if(SubOption==0)//display all
+                {
+                    displayAllEmployees(employees, size);
+                }
+                else if(SubOption==1)//display by ID
+                {
+                    displayEmployeeByID(employees, size);
+                }
+                else//display by name
+                {
+                    displayEmployeeByName(employees, size);
+                }
+
+                printf("\n\n\n\nPress any key to return to the main menu");
+                _getch(); // Wait for user acknowledgement
+
+                // After displaying, return to main menu, reset options
+                *option_main_menu = 0; // Reset main menu option to 'New'
+                SubOption=0;
+                SubFlag=1; // Exit submenu loop
+                break;
+            }
+        case 27: // Escape key in submenu
+            SubFlag=1; // Exit submenu loop
+            SubOption=0; // Reset sub-option
+            break;
+        }
+
+    }while(SubFlag==0);
 }
 
 
@@ -276,14 +399,10 @@ int main()
 {
     char Menu[5][10]={"New", "Edit", "Display", "Delete", "Exit"};
     int Option=0;
-    int Flag=0;
-    char Input;
+    int Flag=0; // Controls the main loop
 
     char NewSubMenu[3][10]={"Account", "Image", "Profile"};
     char DisplaySubMenu[3][20]={"Display All", "Display by ID", "Display by Name"};
-    int SubOption=0;
-    int SubFlag=0;
-    char SubInput;
 
     int Size = getEmployeeCount();
 
@@ -301,223 +420,32 @@ int main()
 
             int menuAction = handleMainMenuSelection(&Option, Menu);
 
-            if (menuAction == -1) { // ESC key
-                Flag = 1;
-            } else if (menuAction == 2) { // Right arrow on Display
-                // Enter Display submenu logic
-                if (Option==2)
-                {
-                    do
-                    {
-                        SubFlag=0;
-                        SubMenu(SubOption, Option, DisplaySubMenu);
-                        SubInput=_getch();
-                        switch (SubInput)
-                        {
-                        case -32:
-                            SubInput=_getch();
-                            switch (SubInput)
-                            {
-                            case 72://up
-                                SubOption--;
-                                if(SubOption<0)
-                                    SubOption=2;
-                                break;
-                            case 80://down
-                                SubOption++;
-                                if(SubOption>2)
-                                SubOption=0;
-                                break;
-                            case 71://home
-                                SubOption=0;
-                                break;
-                            case 79://end
-                                SubOption=2;
-                                break;
-                            case 75://left
-                                system("cls");
-                                SubOption=0;
-                                SubFlag=1;
-                                break;
-                            }
-                            break;
-                        case 13://enter
-                            {
-                                system("cls");
-
-                                if(SubOption==0)
-                                {
-                                    displayAllEmployees(ptr, Size);
-                                }
-                                else if(SubOption==1)
-                                {
-                                    displayEmployeeByID(ptr, Size);
-                                }
-                                else
-                                {
-                                    displayEmployeeByName(ptr, Size);
-                                }
-
-                                printf("\n\n\n\nPress any key to return to the main menu");
-
-                                Option=0;
-                                SubOption=0;
-                                SubFlag=1;
-
-                                _getch();
-                            break;
-                            }
-                        case 27:
-                            SubFlag=1;
-                            SubOption=0;
-                            break;
-                        }
-
-                    }while(SubFlag==0);
-                }
-            } else if (menuAction == 1) { // Enter key
-                if (Option==2)//Display Option
-                {
-                    do
-                    {
-                        SubFlag=0;
-
-                        SubMenu(SubOption, Option, DisplaySubMenu);
-
-                        SubInput=_getch();
-                        switch (SubInput)
-                        {
-                        case -32:
-                            SubInput=_getch();
-                            switch (SubInput)
-                            {
-                            case 72://up
-                                SubOption--;
-                                if(SubOption<0)
-                                    SubOption=2;
-                                break;
-                            case 80://down
-                                SubOption++;
-                                if(SubOption>2)
-                                SubOption=0;
-                                break;
-                            case 71://home
-                                SubOption=0;
-                                break;
-                            case 79://end
-                                SubOption=2;
-                                break;
-                            case 75://left
-                                system("cls");
-                                SubOption=0;
-                                SubFlag=1;
-                                break;
-                            }
-                            break;
-                        case 13://enter
-                            {
-                                system("cls");
-
-                                if(SubOption==0)
-                                {
-                                    displayAllEmployees(ptr, Size);
-                                }
-                                else if(SubOption==1)
-                                {
-                                    displayEmployeeByID(ptr, Size);
-                                }
-                                else
-                                {
-                                    displayEmployeeByName(ptr, Size);
-                                }
-
-                                printf("\n\n\n\nPress any key to return to the main menu");
-
-                                Option=0;
-                                SubOption=0;
-                                SubFlag=1;
-
-                                _getch();
-                            break;
-                            }
-                        case 27:
-                            SubFlag=1;
-                            SubOption=0;
-                            break;
-                        }
-
-                    }while(SubFlag==0);
-                }
-
-                else if(Option==0)//New Option
+            if (menuAction == -1) { // ESC key pressed
+                Flag = 1; // Set flag to exit main loop
+            } else if (menuAction == 2) { // Right arrow on Display option
+                handleDisplayMenu(ptr, Size, DisplaySubMenu, &Option);
+            } else if (menuAction == 1) { // Enter key pressed
+                if(Option == 0) // New Option
                 {
                     handleNewEmployee(ptr, Size);
                 }
-                else if(Option==1)//Edit
+                else if(Option == 1) // Edit Option
                 {
-                    system("cls");
-                    int Edit_ID=0;
-
-                    printf("Please enter the employee ID : ");
-                    scanf("%d", &Edit_ID);
-
-                    int IndexToEdit = findEmployeeIndexByID(ptr, Size, Edit_ID);
-
-                    if (IndexToEdit!=-1)
-                    {
-                        printf("\nPlease enter the Employee's data:\n");
-
-                        printf("First Name = ");
-                        _flushall();
-                        gets(ptr[IndexToEdit].Name);
-
-                        printf("Salary = ");
-                        scanf("%f", &ptr[IndexToEdit].Salary);
-
-                        printf("\n\n\nEmployee's data with ID = %d has been edited successfully", Edit_ID);
-                        printf(", press any key to return to the main menu");
-                        getch();
-
-                    }
-                    else
-                    {
-                        printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Edit_ID);
-                        getch();
-                    }
-
+                    handleEditEmployee(ptr, Size);
                     Option=0;
                 }
-                else if(Option==3)//delete
+                else if(Option == 2) // Display Option (if ENTER pressed, not right arrow)
                 {
-                    system("cls");
-                    int Delete_ID=0;
-
-                    printf("Please enter the employee ID : ");
-                    scanf("%d", &Delete_ID);
-
-                    int IndexToDelete = findEmployeeIndexByID(ptr, Size, Delete_ID);
-
-                    if (IndexToDelete!=-1)
-                    {
-                        ptr[IndexToDelete].ID=-1;
-
-                        printf("\n\n\nEmployee with ID = %d has been deleted successfully", Delete_ID);
-                        printf(", press any key to return to the main menu");
-                        getch();
-
-                    }
-                    else
-                    {
-                        printf("\n\n\nThere are no employees with ID = %d, press any key to return to the main menu", Delete_ID);
-                        getch();
-                    }
-
-                    Option=0;
-
+                    handleDisplayMenu(ptr, Size, DisplaySubMenu, &Option);
                 }
-                else//Exit Option
+                else if(Option == 3) // Delete Option
                 {
-                    Flag=1;
+                    handleDeleteEmployee(ptr, Size);
+                    Option=0; // After action, return to 'New' option in main menu
+                }
+                else if(Option == 4) // Exit Option
+                {
+                    Flag = 1; // Set flag to exit main loop
                 }
             }
 
@@ -528,7 +456,7 @@ int main()
     else
     {
         printf("Memory allocation failed!\n");
-        return 1; // Indicate error
+        return 1;
     }
 
     return 0;
